@@ -1,16 +1,16 @@
 /* eslint-env mocha */
-var mongoose = require('mongoose')
+const mongoose = require('mongoose')
 require('should')
-var mongooseAggregatePaginate = require('../')
+const mongooseAggregatePaginate = require('../')
 mongoose.connect('mongodb://localhost/MongooseAggregatePaginate-test', {useMongoClient: true})
 // mongoose.set('debug', true)
-var Schema = mongoose.Schema
+const Schema = mongoose.Schema
 mongoose.Promise = Promise
 
 /**
  * test Schema
  */
-var testSchema = new Schema(
+const testSchema = new Schema(
   {
     studentId: Number,
     marksheet: [{
@@ -24,14 +24,14 @@ var testSchema = new Schema(
 )
 testSchema.plugin(mongooseAggregatePaginate)
 
-var TestModel = mongoose.model('TestModel', testSchema, 'studentMarksheet')
+const TestModel = mongoose.model('TestModel', testSchema, 'studentMarksheet')
 
 module.exports = testSchema
 
 describe('Mongoose Aggregate Paginate tests', function () {
   before(function (done) {
-    var testData = []
-    for (var index = 0; index < 100; ++index) {
+    let testData = []
+    for (let index = 0; index < 100; ++index) {
       testData.push(new TestModel({
         studentId: index,
         marksheet: [{subject: 'physics', marks: 100 - (index % 9)}, {
@@ -51,7 +51,7 @@ describe('Mongoose Aggregate Paginate tests', function () {
   })
 
   describe('Basic Tests on 100 documents', function () {
-    var query = TestModel.aggregate().allowDiskUse(true)
+    let query = TestModel.aggregate().allowDiskUse(true)
       .project({'marksheet': 1, 'studentId': 1})
       .unwind('$marksheet')
       .group({_id: '$studentId', total: {$sum: '$marksheet.marks'}})
@@ -147,7 +147,7 @@ describe('Mongoose Aggregate Paginate tests', function () {
       })
 
       it('should return 10 results, page count = 10 and total count = 100 when limit = 10 and page = 1 sort order = total desc', function (done) {
-        // var sortQuery = TestModel.aggregate(query._pipeline)
+        // let sortQuery = TestModel.aggregate(query._pipeline)
         TestModel.aggregatePaginate(query, {
           limit: 10,
           page: 1,
@@ -209,7 +209,7 @@ describe('Mongoose Aggregate Paginate tests', function () {
       })
 
       it('should return 10 results, page count = 10 and total count = 100 when limit = 10 and page = 1 sort order = total desc', function (done) {
-        // var sortQuery = TestModel.aggregate(query._pipeline)
+        // let sortQuery = TestModel.aggregate(query._pipeline)
         TestModel.aggregatePaginate(query, {limit: 10, page: 1, sort: {'total': -1, '_id': -1}})
           .then(function (value) {
             value.docs.length.should.equal(10)
@@ -282,7 +282,7 @@ describe('Mongoose Aggregate Paginate tests', function () {
           done('no error return')
         })
         it('should return error', function (done) {
-          var q = TestModel.aggregate()
+          let q = TestModel.aggregate()
             .project({'marksheet': 1, 'studentId': 1})
             .unwind('marksheet')
             .group({_id: '$studentId', total: {$sum: '$marksheet.marks'}})
@@ -358,7 +358,7 @@ describe('Mongoose Aggregate Paginate tests', function () {
             done()
           })
         it('should return error', function (done) {
-          var q = TestModel.aggregate()
+          let q = TestModel.aggregate()
             .project({'marksheet': 1, 'studentId': 1})
             .unwind('marksheet')
             .group({_id: '$studentId', total: {$sum: '$marksheet.marks'}})
@@ -370,6 +370,148 @@ describe('Mongoose Aggregate Paginate tests', function () {
               err.should.should.not.equal(null)
               done()
             })
+        })
+      })
+    })
+
+    describe('with offset and limit (callback)', function () {
+      it('should return 10 results, page count = 10 and total count = 100 when offset = 0, limit = 10', function (done) {
+        TestModel.aggregatePaginate(query, {offset: 0, limit: 10}, function (err, result, pages, total) {
+          if (err) return done(err)
+          result.length.should.equal(10)
+          pages.should.equal(10)
+          total.should.equal(100)
+          done()
+        })
+      })
+
+      it('should return 10 results, page count = 10 and total count = 100 when offset = 10, limit = 10', function (done) {
+        TestModel.aggregatePaginate(query, {offset: 10, limit: 10}, function (err, result, pages, total) {
+          if (err) return done(err)
+          result.length.should.equal(10)
+          pages.should.equal(10)
+          total.should.equal(100)
+          done()
+        })
+      })
+
+      it('should return 10 results, page count = 10 and total count = 100 when offset = 10, limit = 10', function (done) {
+        TestModel.aggregatePaginate(query, {offset: 90, limit: 10}, function (err, result, pages, total) {
+          if (err) return done(err)
+          result.length.should.equal(10)
+          pages.should.equal(10)
+          total.should.equal(100)
+          done()
+        })
+      })
+
+      it('should return 0 results, page count = 10 and total count = 100 when offset = 100, limit = 10', function (done) {
+        TestModel.aggregatePaginate(query, {offset: 100, limit: 10}, function (err, result, pages, total) {
+          if (err) return done(err)
+          result.length.should.equal(0)
+          pages.should.equal(10)
+          total.should.equal(100)
+          done()
+        })
+      })
+
+      it('should return error', function (done) {
+        TestModel.aggregatePaginate(query, {
+          offset: -5,
+          limit: 20,
+          sort: {'total': -1}
+        }, function (err, result, pages, total) {
+          if (err) {
+            err.should.should.not.equal(null)
+            done()
+            return
+          }
+          done('no error return')
+        })
+        it('should return error', function (done) {
+          let q = TestModel.aggregate()
+            .project({'marksheet': 1, 'studentId': 1})
+            .unwind('marksheet')
+            .group({_id: '$studentId', total: {$sum: '$marksheet.marks'}})
+          TestModel.aggregatePaginate(q, {
+            page: -5,
+            limit: 20,
+            sort: {'total': -1}
+          }, function (err, result, pages, total) {
+            if (err) {
+              err.should.should.not.equal(null)
+              done()
+              return
+            }
+            done('no error return')
+          })
+        })
+      })
+    })
+
+    describe('with offset and limit (Promise)', function () {
+      it('should return 10 results, page count = 10 and total count = 100 when offset = 0, limit = 10', function (done) {
+        TestModel.aggregatePaginate(query, {offset: 0, limit: 10})
+          .then(function (value) {
+            value.docs.length.should.equal(10)
+            value.pages.should.equal(10)
+            value.total.should.equal(100)
+            done()
+          }).catch(done)
+      })
+
+      it('should return 10 results, page count = 10 and total count = 100 when offset = 10, limit = 10', function (done) {
+        TestModel.aggregatePaginate(query, {offset: 10, limit: 10})
+        .then(function (value) {
+          value.docs.length.should.equal(10)
+          value.pages.should.equal(10)
+          value.total.should.equal(100)
+          done()
+        }).catch(done)
+      })
+
+      it('should return 10 results, page count = 10 and total count = 100 when offset = 10, limit = 10', function (done) {
+        TestModel.aggregatePaginate(query, {offset: 90, limit: 10})
+        .then(function (value) {
+          value.docs.length.should.equal(10)
+          value.pages.should.equal(10)
+          value.total.should.equal(100)
+          done()
+        }).catch(done)
+      })
+
+      it('should return 0 results, page count = 10 and total count = 100 when offset = 100, limit = 10', function (done) {
+        TestModel.aggregatePaginate(query, {offset: 100, limit: 10})
+        .then(function (value) {
+          value.docs.length.should.equal(0)
+          value.pages.should.equal(10)
+          value.total.should.equal(100)
+          done()
+        }).catch(done)
+      })
+
+      it('should return error', function (done) {
+        TestModel.aggregatePaginate(query, {offset: -5, limit: 20, sort: {'total': -1}})
+            .then(function (value) {
+              done('no error return')
+            })
+            .catch(function (err) {
+              err.should.should.not.equal(null)
+              done()
+            })
+        it('should return error', function (done) {
+          let q = TestModel.aggregate()
+              .project({'marksheet': 1, 'studentId': 1})
+              .unwind('marksheet')
+              .group({_id: '$studentId', total: {$sum: '$marksheet.marks'}})
+          TestModel.aggregatePaginate(q, {page: -5, limit: 20, sort: {'total': -1}})
+              .then(function (value) {
+                done('no error return')
+              })
+              .catch(function (err) {
+                err.should.should.not.equal(null)
+                done()
+              })
         })
       })
     })

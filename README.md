@@ -41,8 +41,9 @@ mySchema.plugin(mongooseAggregatePaginate);
 
 * `aggregate` - An object of the [Mongoose][mongoose] aggregate.
 * `options` - An object with options for the [Mongoose][mongoose] query, such as sorting
-  - `page` - Default: `1`
-  - `limit` - Default: `10`
+  - `page` - Default: `1` - Pages start from 1
+  - `offset` - Default: `0` - Number of documents to skip over
+  - `limit` - Default: `10` - Use offset or page in combination with limit for pagination
   - `sort` - Default: `undefined`
 * `callback(err, results, pages, total)` - A callback is called once pagination results are retrieved, or an error has occurred. If not specified promise will be returned
 
